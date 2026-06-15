@@ -1,0 +1,57 @@
+// tests/aiScoring.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { calculateAiScore, getRank, SignalRank } from '../src/features/smart-trading-engine/aiScoring';
+import { Signal, Trend, SignalType } from '../src/features/smart-trading-engine/signalGenerator';
+import * as historicalPerformance from '../src/features/smart-trading-engine/historicalPerformance';
+
+// Mock the historical performance module
+vi.mock('../src/features/smart-trading-engine/historicalPerformance', () => ({
+  getHistoricalWinRate: vi.fn(),
+  createSetupSignature: vi.fn((trend, type) => `${trend}_${type}`),
+}));
+
+describe('aiScoring', () => {
+  describe('calculateAiScore', () => {
+    it('should return a high score for ideal conditions', async () => {
+      const signal: Signal = { id: '1', symbol: 'BTCUSDT', type: SignalType.BUY, price: 50000, timestamp: Date.now() };
+      const candles = [
+        { open: 49000, high: 51000, low: 48000, close: 50500, volume: 2000, timestamp: Date.now() - 1000 },
+        { open: 48000, high: 49000, low: 47000, close: 48500, volume: 1000, timestamp: Date.now() - 2000 },
+      ];
+
+      // Mock win rate to be high
+      vi.spyOn(historicalPerformance, 'getHistoricalWinRate').mockResolvedValue(0.9);
+
+      const score = await calculateAiScore(signal, candles);
+      expect(score).toBeGreaterThan(80);
+    });
+
+    it('should return a low score for poor conditions', async () => {
+        const signal: Signal = { id: '2', symbol: 'BTCUSDT', type: SignalType.BUY, price: 50000, timestamp: Date.now() };
+        const candles = Array(50).fill({ open: 50000, high: 50100, low: 49900, close: 50000, volume: 100, timestamp: Date.now() });
+  
+        // Mock win rate to be low
+        vi.spyOn(historicalPerformance, 'getHistoricalWinRate').mockResolvedValue(0.2);
+  
+        const score = await calculateAiScore(signal, candles);
+        expect(score).toBeLessThan(40);
+      });
+  });
+
+  describe('getRank', () => {
+    it('should return HIGH for scores >= 80', () => {
+      expect(getRank(80)).toBe(SignalRank.HIGH);
+      expect(getRank(95)).toBe(SignalRank.HIGH);
+    });
+
+    it('should return MEDIUM for scores between 60 and 79', () => {
+      expect(getRank(60)).toBe(SignalRank.MEDIUM);
+      expect(getRank(79)).toBe(SignalRank.MEDIUM);
+    });
+
+    it('should return LOW for scores < 60', () => {
+      expect(getRank(0)).toBe(SignalRank.LOW);
+      expect(getRank(59)).toBe(SignalRank.LOW);
+    });
+  });
+});

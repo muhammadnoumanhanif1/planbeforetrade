@@ -1,0 +1,9 @@
+CREATE TABLE backtest_results (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    symbol TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    total_trades INT NOT NULL,
+    win_rate DOUBLE PRECISION NOT NULL,
+    total_R DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

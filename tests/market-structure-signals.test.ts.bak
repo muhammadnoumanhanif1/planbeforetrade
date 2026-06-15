@@ -1,0 +1,111 @@
+import { describe, expect, it } from "vitest";
+import { calculateEntryZone, getDistanceToEntryZone } from "@/lib/signals/entryZoneCalculator";
+import { getDeduplicatedSignal, resolveTradeStatus } from "@/lib/signals/signalStatusManager";
+import { calculateConfidenceScore } from "@/lib/signals/confidenceScore";
+import { parseScannerSymbols, sortSignalPriority } from "@/lib/signals/marketScanner";
+
+describe("market structure signal helpers", () => {
+  it("calculates buy and sell entry zones", () => {
+    expect(calculateEntryZone({ action: "BUY", support: 100, resistance: null, thresholdPercent: 0.01 })).toEqual([
+      100,
+      101,
+    ]);
+    expect(calculateEntryZone({ action: "SELL", support: null, resistance: 200, thresholdPercent: 0.01 })).toEqual([
+      198,
+      200,
+    ]);
+    expect(getDistanceToEntryZone(95, [100, 101])).toBeGreaterThan(0);
+    expect(getDistanceToEntryZone(100, [100, 101])).toBe(0);
+    expect(getDistanceToEntryZone(101, [100, 101])).toBe(0);
+    expect(getDistanceToEntryZone(100.5, [100, 101])).toBe(0);
+    expect(calculateEntryZone({ action: "BUY", support: null, resistance: null, thresholdPercent: 0.01 })).toBeNull();
+  });
+
+  it("resolves trade status transitions", () => {
+    expect(
+      resolveTradeStatus({
+        action: "BUY",
+        trend: "UPTREND",
+        currentPrice: 100.1,
+        entryZone: [100, 101],
+        support: 99,
+        resistance: 110,
+      })
+    ).toBe("READY");
+
+    expect(
+      resolveTradeStatus({
+        action: "BUY",
+        trend: "UPTREND",
+        currentPrice: 100.85,
+        entryZone: [100, 101],
+        support: 99,
+        resistance: 110,
+      })
+    ).toBe("TRIGGERED");
+
+    expect(
+      resolveTradeStatus({
+        action: "BUY",
+        trend: "DOWNTREND",
+        currentPrice: 99,
+        entryZone: [100, 101],
+        support: 100,
+        resistance: 110,
+      })
+    ).toBe("INVALID");
+  });
+
+  it("scores confidence in 0-100 range", () => {
+    const strongScore = calculateConfidenceScore({
+      trendStrength: 90,
+      distanceToEntryZone: 0,
+      entryZone: [100, 101],
+      action: "BUY",
+      trend: "UPTREND",
+      rsi: 52,
+      ema20: 105,
+      ema50: 100,
+    });
+
+    const weakScore = calculateConfidenceScore({
+      trendStrength: 25,
+      distanceToEntryZone: 0.03,
+      entryZone: [100, 101],
+      action: "BUY",
+      trend: "SIDEWAYS",
+      rsi: 70,
+      ema20: 99,
+      ema50: 100,
+    });
+
+    expect(strongScore).toBeGreaterThanOrEqual(0);
+    expect(strongScore).toBeLessThanOrEqual(100);
+    expect(strongScore).toBeGreaterThan(weakScore);
+  });
+
+  it("parses symbols and sorts by priority", () => {
+    const symbols = parseScannerSymbols(" BTCUSDT, ETHUSDT, BTCUSDT ");
+    expect(symbols).toEqual(["BTCUSDT", "ETHUSDT"]);
+
+    const sorted = sortSignalPriority([
+      { symbol: "ETHUSDT", trend: "UPTREND", setup: "WAITING", entry_zone: null, confidence: 70, distanceToEntryZone: 0.001, signal: {} as any },
+      { symbol: "BTCUSDT", trend: "UPTREND", setup: "WAITING", entry_zone: null, confidence: 85, distanceToEntryZone: 0.005, signal: {} as any },
+    ]);
+
+    expect(sorted[0].symbol).toBe("BTCUSDT");
+  });
+
+  it("marks duplicate setup keys while keeping status updates", () => {
+    const signal = {
+      setupKey: "BTCUSDT|UPTREND|BUY|100|101",
+      status: "READY" as const,
+      notes: ["Initial setup"],
+    };
+
+    const deduped = getDeduplicatedSignal(signal, signal.setupKey);
+    expect(deduped.isDuplicate).toBe(true);
+    expect(deduped.signal.status).toBe("READY");
+    expect(deduped.signal.notes.length).toBeGreaterThan(1);
+  });
+});

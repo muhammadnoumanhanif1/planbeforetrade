@@ -1,0 +1,18 @@
+{
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/analysis/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/billing/webhook/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/billing/pakistan/verify/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "github": {
+    "silent": true
+  }
+}

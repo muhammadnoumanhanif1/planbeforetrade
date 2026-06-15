@@ -1,0 +1,49 @@
+// tests/signalLifecycle.test.ts
+
+import { describe, it, expect, vi } from 'vitest';
+import { updateSignalStatus, SignalStatus } from '../src/features/smart-trading-engine/signalLifecycle';
+import { createClient } from '@/lib/supabase-client';
+
+// Mock Supabase client
+const mockUpdate = vi.fn(() => ({
+    eq: vi.fn(() => ({
+      error: null,
+    })),
+  }));
+
+const mockFrom = vi.fn(() => ({
+    update: mockUpdate,
+}));
+
+vi.mock('@/lib/supabase-client', () => ({
+  createClient: vi.fn(() => ({
+    from: mockFrom,
+  })),
+}));
+
+describe('signalLifecycle', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+  it('should update a signal status to TRIGGERED', async () => {
+    const signalId = 'test-signal-123';
+    await updateSignalStatus(signalId, SignalStatus.TRIGGERED);
+
+    expect(mockFrom).toHaveBeenCalledWith('signals');
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.status).toBe(SignalStatus.TRIGGERED);
+  });
+
+  it('should close a signal with a result', async () => {
+    const signalId = 'test-signal-456';
+    const resultR = 3; // 3R win
+    await updateSignalStatus(signalId, SignalStatus.CLOSED, resultR);
+
+    expect(mockFrom).toHaveBeenCalledWith('signals');
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.status).toBe(SignalStatus.CLOSED);
+    expect(updateCall.result_R).toBe(resultR);
+    expect(updateCall.closed_at).toBeDefined();
+  });
+});

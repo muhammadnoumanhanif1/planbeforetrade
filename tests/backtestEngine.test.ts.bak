@@ -1,0 +1,56 @@
+// tests/backtestEngine.test.ts
+
+import { describe, it, expect } from 'vitest';
+import { runBacktest } from '../src/features/smart-trading-engine/backtestEngine';
+import { Candle } from '../src/features/smart-trading-engine/signalGenerator';
+
+function createMockCandles(length: number = 100, trend: 'up' | 'down' | 'sideways' = 'up'): Candle[] {
+    const candles: Candle[] = [];
+    let price = 50000;
+    for (let i = 0; i < length; i++) {
+      const open = price;
+      let close;
+      if (trend === 'up') {
+        close = price + Math.random() * 100;
+      } else if (trend === 'down') {
+        close = price - Math.random() * 100;
+      } else {
+        close = price + (Math.random() - 0.5) * 100;
+      }
+      const high = Math.max(open, close) + Math.random() * 50;
+      const low = Math.min(open, close) - Math.random() * 50;
+      candles.push({
+        timestamp: Date.now() - (length - i) * 60000,
+        open,
+        high,
+        low,
+        close,
+        volume: Math.random() * 1000,
+      });
+      price = close;
+    }
+    return candles;
+  }
+
+describe('backtestEngine', () => {
+  it('should run a backtest and return results', async () => {
+    const candles = createMockCandles(200, 'up');
+    const input = { symbol: 'BTCUSDT', timeframe: '1h', startDate: new Date(), endDate: new Date() };
+    const results = await runBacktest(input, candles);
+
+    expect(results.totalTrades).toBeGreaterThan(0);
+    expect(results.wins + results.losses).toBe(results.totalTrades);
+    expect(results.winRate).toBeDefined();
+    expect(results.totalR).toBeDefined();
+    expect(results.maxDrawdown).toBeDefined();
+  });
+
+  it('should handle a losing backtest', async () => {
+    const candles = createMockCandles(200, 'down');
+    const input = { symbol: 'BTCUSDT', timeframe: '1h', startDate: new Date(), endDate: new Date() };
+    const results = await runBacktest(input, candles);
+    
+    // In a downtrend, BUY signals should mostly lose
+    expect(results.totalR).toBeLessThanOrEqual(0);
+  });
+});

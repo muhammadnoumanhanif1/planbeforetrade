@@ -1,0 +1,15 @@
+# Supabase Configuration
+# This file should be in the root of your project alongside package.json
+
+[project]
+# The project ID from Supabase dashboard
+# If using remote Supabase, the CLI will automatically detect from environment
+
+[build]
+# Enable/disable schema validation
+# Default: true
+verify_ssl = true
+
+[analytics]
+# Telemetry
+enabled = false
