@@ -119,10 +119,10 @@ const toQuery = (
     return { error: "symbol is required", status: 400 };
   }
 
-  const rawTimeframe = (timeframeRaw ?? "1h").trim();
+  const rawTimeframe = (timeframeRaw ?? "3min").trim();
   const timeframe: Timeframe = TIMEFRAMES.includes(rawTimeframe as Timeframe)
     ? (rawTimeframe as Timeframe)
-    : "1h";
+    : "3min";
 
   const confidenceThreshold = toSafeNumber(confidenceRaw, 60, 1, 95);
 

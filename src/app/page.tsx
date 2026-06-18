@@ -63,18 +63,7 @@ export default function Home() {
             </ul>
           </div>
 
-          <div className={styles.card}>
-            <h2>🧮 Average Coin Calculator</h2>
-            <p style={{ color: "#cbd5f5", marginBottom: "16px" }}>
-              Track your blended entry price across multiple buys, estimate profit and loss, and review the impact of new entries before you add more capital.
-            </p>
-            <ul style={{ color: "#94a3b8", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
-              <li>✓ Multiple entry averaging</li>
-              <li>✓ Live profit and loss simulation</li>
-              <li>✓ Exchange-based coin selection</li>
-              <li>✓ Built for premium trade planning</li>
-            </ul>
-          </div>
+
 
           <div className={styles.card}>
             <h2>📈 Interactive Charts</h2>
@@ -90,31 +79,7 @@ export default function Home() {
             </ul>
           </div>
 
-          <div className={styles.card}>
-            <h2>👀 Watchlists</h2>
-            <p style={{ color: "#cbd5f5", marginBottom: "16px" }}>
-              Group your favorite coins into premium watchlists, keep track of the setups you care about, and revisit them whenever the market changes.
-            </p>
-            <ul style={{ color: "#94a3b8", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
-              <li>✓ Saved coin collections</li>
-              <li>✓ Premium-only workflow</li>
-              <li>✓ Easy price tracking</li>
-              <li>✓ Built for trade monitoring</li>
-            </ul>
-          </div>
 
-          <div className={styles.card}>
-            <h2>🧮 Liquidation Calculator</h2>
-            <p style={{ color: "#cbd5f5", marginBottom: "16px" }}>
-              Compare estimated liquidation prices across Binance, Bitget, and MEXC before you size a leveraged trade.
-            </p>
-            <ul style={{ color: "#94a3b8", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
-              <li>✓ Exchange-by-exchange comparison</li>
-              <li>✓ Long and short support</li>
-              <li>✓ Isolated and cross margin</li>
-              <li>✓ Built into the live web app</li>
-            </ul>
-          </div>
         </section>
 
         <section style={{ textAlign: "center", marginTop: "48px" }}>
@@ -171,11 +136,7 @@ export default function Home() {
               <ul style={{ color: "#94a3b8", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
                 <li>✓ Unlimited analyses</li>
                 <li>✓ Save analyses</li>
-                <li>✓ Watchlists</li>
-                <li>✓ Price alerts</li>
                 <li>✓ Priority support</li>
-                <li>✓ Average Calculator</li>
-                <li>✓ Liquidation Calculator</li>
               </ul>
               <Link href="/pricing" className={styles.button} style={{ textDecoration: "none" }}>
                 View Plans

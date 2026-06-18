@@ -352,18 +352,16 @@ export function applySignalFilters(
     reasons.push("No entry confirmation detected");
   }
 
-  // Filter 2: Volume confirmation
-  if (!volumeConfirmed) {
-    reasons.push("Insufficient volume on entry candle");
+  // Filter 2: Volume confirmation (relaxed to warning - does not block trade)
+  // We do not add to blocker reasons, allowing signals with normal/lower volume to pass.
+
+  // Filter 3: Quality score must be >= 60 (lowered from 70)
+  if (entryQualityScore < 60) {
+    reasons.push(`Entry quality score too low (${entryQualityScore} < 60)`);
   }
 
-  // Filter 3: Quality score must be >= 70
-  if (entryQualityScore < 70) {
-    reasons.push(`Entry quality score too low (${entryQualityScore} < 70)`);
-  }
-
-  // Filter 4: Trend strength (should be strong)
-  if (trendStrength < 40) {
+  // Filter 4: Trend strength must be >= 30 (lowered from 40)
+  if (trendStrength < 30) {
     reasons.push("Trend strength too weak");
   }
 

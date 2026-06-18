@@ -53,8 +53,6 @@ export const PROTECTED_ROUTES = [
   "/signals",
   "/profile",
   "/settings",
-  "/watchlists",
-  "/alerts",
   "/saved",
 ];
 

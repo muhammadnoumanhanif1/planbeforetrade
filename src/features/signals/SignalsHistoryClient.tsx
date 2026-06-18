@@ -202,7 +202,7 @@ export function SignalsHistoryClient() {
             <p className={styles.placeholder} style={{ marginBottom: 16 }}>
               No signal history yet. Signals are recorded automatically when you use the{" "}
               <Link href="/market-structure-signals" style={{ color: "#10b981" }}>
-                Smart Signals
+                Smart Signal
               </Link>{" "}
               scanner.
             </p>
@@ -211,7 +211,7 @@ export function SignalsHistoryClient() {
               className={styles.button}
               style={{ textDecoration: "none", display: "inline-block" }}
             >
-              Go to Smart Signals
+              Go to Smart Signal
             </Link>
           </div>
         ) : filtered.length === 0 ? (
@@ -300,6 +300,12 @@ export function SignalsHistoryClient() {
                         {record.entry_zone
                           ? `${formatPrice(record.entry_zone[0])} – ${formatPrice(record.entry_zone[1])}`
                           : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={styles.labelText}>Current Price</p>
+                      <p style={{ color: "#e2e8f0", fontSize: 13 }}>
+                        {formatPrice(record.current_price ?? record.entry_price)}
                       </p>
                     </div>
                     <div>

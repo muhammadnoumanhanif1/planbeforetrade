@@ -30,7 +30,7 @@ const SHORT_SMA_WINDOW = 10;
 const LONG_SMA_WINDOW = 30;
 const MOMENTUM_LOOKBACK = 15;
 const MOMENTUM_WEIGHT = 0.6;
-const CANDLE_LIMIT = 100;
+const CANDLE_LIMIT = 500;
 const MAX_PREDICTION_CHANGE = 0.06;
 const MIN_STEP_RATIO_OF_PRICE = 0.0025;
 const STOP_LOSS_STEP_MULTIPLIER = 0.8;
@@ -311,10 +311,10 @@ export async function GET(request: Request) {
 
   const rawSymbol = searchParams.get("symbol") ?? "";
   const trimmedSymbol = rawSymbol.trim();
-  const rawTimeframe = searchParams.get("timeframe") ?? "1h";
+  const rawTimeframe = searchParams.get("timeframe") ?? "3min";
   const normalizedTimeframe = VALID_TIMEFRAMES.includes(rawTimeframe as (typeof VALID_TIMEFRAMES)[number])
     ? (rawTimeframe as (typeof VALID_TIMEFRAMES)[number])
-    : "1h";
+    : "3min";
   const exchangeTimeframe = TIMEFRAME_MAP[exchange][normalizedTimeframe];
 
   if (!trimmedSymbol) {

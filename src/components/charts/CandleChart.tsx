@@ -12,6 +12,29 @@ import {
 import styles from "../../app/page.module.css";
 import type { CandleData, OrderBlockData, SmaData } from "../../features/analysis/types";
 
+function calculateEMA(candles: CandleData[], period: number): { time: number; value: number }[] {
+  if (candles.length < period) return [];
+
+  const emaValues: { time: number; value: number }[] = [];
+  const k = 2 / (period + 1);
+
+  // Initialize with Simple Moving Average (SMA) of first 'period' candles
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += candles[i].close;
+  }
+  let currentEma = sum / period;
+  emaValues.push({ time: candles[period - 1].time, value: currentEma });
+
+  // Calculate subsequent EMA values
+  for (let i = period; i < candles.length; i++) {
+    currentEma = candles[i].close * k + currentEma * (1 - k);
+    emaValues.push({ time: candles[i].time, value: currentEma });
+  }
+
+  return emaValues;
+}
+
 type CandleChartProps = {
   candles: CandleData[];
   smaLine: SmaData[];
@@ -86,8 +109,29 @@ function CandleChartComponent({
       title: "SMA (30)",
     });
 
+    const ema50Data = calculateEMA(candles, 50);
+    const ema200Data = calculateEMA(candles, 200);
+
+    const ema50Series = chart.addSeries(LineSeries, {
+      color: "#ec4899",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: "EMA (50)",
+    });
+
+    const ema200Series = chart.addSeries(LineSeries, {
+      color: "#10b981",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: "EMA (200)",
+    });
+
     candleSeries.setData(candles as unknown as never);
     smaSeries.setData(smaLine as unknown as never);
+    ema50Series.setData(ema50Data as unknown as never);
+    ema200Series.setData(ema200Data as unknown as never);
 
     const lastTime = candles[candles.length - 1].time;
     const firstTime = candles[0].time;
@@ -240,6 +284,8 @@ function CandleChartComponent({
         <span><span className={styles.legendBlue} /> Target</span>
         <span><span className={styles.legendYellow} /> Stop Loss</span>
         <span><span className={styles.legendLightBlue} /> SMA</span>
+        <span><span style={{ display: "inline-block", width: 20, height: 3, backgroundColor: "#ec4899" }} /> EMA (50)</span>
+        <span><span style={{ display: "inline-block", width: 20, height: 3, backgroundColor: "#10b981" }} /> EMA (200)</span>
         <span><span className={styles.legendPurple} /> Order Block</span>
       </div>
     </div>

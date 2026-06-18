@@ -19,7 +19,7 @@ const TIMEFRAMES = [
   "1day",
   "1week",
 ] as const;
-const SCAN_MODES = ["top50", "top100", "top150", "top200"] as const;
+const SCAN_MODES = ["top10", "top25", "top50", "top100"] as const;
 
 type TelegramSignal = {
   symbol: string;
@@ -37,6 +37,9 @@ type TelegramSignal = {
     confidence: number;
     status: "WAITING" | "READY" | "TRIGGERED" | "INVALID" | "CLOSED";
     entry_confirmed?: boolean;
+    entry_confirmation?: {
+      confirmed: boolean;
+    };
     entry_quality_score?: {
       score: number;
     };
@@ -58,15 +61,19 @@ const isTelegramReady = (item: TelegramSignal) => {
   const signal = item.signal;
   const aiScore = signal.ai_score ?? signal.confidence ?? 0;
   const isHighScore = aiScore >= 65;
-  const isConfirmed = item.setup === "READY" || item.setup === "TRIGGERED" || signal.entry_confirmed === true;
+  const isConfirmed =
+    item.setup === "READY" ||
+    item.setup === "TRIGGERED" ||
+    signal.entry_confirmed === true ||
+    signal.entry_confirmation?.confirmed === true;
   const isHighQuality = signal.entry_quality_score ? signal.entry_quality_score.score >= 65 : true;
   return isHighScore && isConfirmed && isHighQuality;
 };
 
 export function SignalsTelegramClient() {
   const [exchange, setExchange] = useState<(typeof EXCHANGES)[number]>("binance");
-  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>("1h");
-  const [scanMode, setScanMode] = useState<(typeof SCAN_MODES)[number]>("top50");
+  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>("3min");
+  const [scanMode, setScanMode] = useState<(typeof SCAN_MODES)[number]>("top10");
   const [signals, setSignals] = useState<TelegramSignal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,10 +159,10 @@ export function SignalsTelegramClient() {
             <label className={styles.label}>
               Coins to scan
               <select className={styles.input} value={scanMode} onChange={(event) => setScanMode(event.target.value as typeof scanMode)}>
+                <option value="top10">Top 10</option>
+                <option value="top25">Top 25</option>
                 <option value="top50">Top 50</option>
                 <option value="top100">Top 100</option>
-                <option value="top150">Top 150</option>
-                <option value="top200">Top 200</option>
               </select>
             </label>
 

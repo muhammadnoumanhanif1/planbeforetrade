@@ -184,7 +184,7 @@ const isSignalActiveNow = (
   const generatedTs = new Date(generatedAt).getTime();
   if (Number.isNaN(generatedTs)) return false;
 
-  const timeframeMs = TIMEFRAME_TO_MS[timeframe] ?? TIMEFRAME_TO_MS["1h"];
+  const timeframeMs = TIMEFRAME_TO_MS[timeframe] ?? TIMEFRAME_TO_MS["3min"];
   const maxSignalAgeMs = timeframeMs * 2;
   return Date.now() - generatedTs <= maxSignalAgeMs;
 };
@@ -261,8 +261,8 @@ export function MarketStructureSignalsClient() {
   const urlSymbol = urlSymbolRaw ? urlSymbolRaw.toUpperCase() : null;
 
   const [exchange, setExchange] = useState<(typeof EXCHANGES)[number]>("binance");
-  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>("1h");
-  const [chartTimeframe, setChartTimeframe] = useState<(typeof TIMEFRAMES)[number]>("1h");
+  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>("3min");
+  const [chartTimeframe, setChartTimeframe] = useState<(typeof TIMEFRAMES)[number]>("3min");
   const [chartCandles, setChartCandles] = useState<any[] | null>(null);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState(urlSymbol || "BTCUSDT");
@@ -279,7 +279,7 @@ export function MarketStructureSignalsClient() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const [sessionFilter, setSessionFilter] = useState<"all" | "london" | "newyork" | "asian" | "american">("all");
   
-  const [scanMode, setScanMode] = useState<"custom" | "top50" | "top100" | "top150" | "top200">(urlSymbol ? "custom" : "top50");
+  const [scanMode, setScanMode] = useState<"custom" | "top10" | "top25" | "top50" | "top100">(urlSymbol ? "custom" : "top10");
   const [coinScoreFilter, setCoinScoreFilter] = useState<"all" | "above50" | "above70">("above50");
 
   // Sync state if URL param changes after initial load
@@ -391,9 +391,16 @@ export function MarketStructureSignalsClient() {
           for (let i = 0; i < updated.length; i++) {
             const rec = updated[i];
             if (rec.symbol !== item.symbol || rec.status === "CLOSED") continue;
+            
+            // Track current price in the active signal record
+            updated[i] = {
+              ...rec,
+              current_price: currentPrice
+            };
+            
             const outcome = checkSignalOutcome(rec, currentPrice);
             if (outcome) {
-              const closed = closeSignalRecord(rec, outcome);
+              const closed = closeSignalRecord(updated[i], outcome);
               updated[i] = closed;
               sendSignalUpdate(outcome === "WIN" ? "TP_HIT" : "SL_HIT", closed);
             }
@@ -418,6 +425,7 @@ export function MarketStructureSignalsClient() {
                 stop_loss: sig.stop_loss,
                 take_profit: sig.take_profit,
                 risk_reward_ratio: sig.risk.riskRewardRatio,
+                current_price: sig.entry_price,
               });
               // Avoid duplicate records for the same setup
               const isDup = updated.some(
@@ -728,13 +736,13 @@ export function MarketStructureSignalsClient() {
               <select
                 className={styles.input}
                 value={scanMode}
-                onChange={(e) => setScanMode(e.target.value as "custom" | "top50" | "top100" | "top150" | "top200")}
+                onChange={(e) => setScanMode(e.target.value as "custom" | "top10" | "top25" | "top50" | "top100")}
               >
                 <option value="custom">Custom Symbols</option>
-                <option value="top50">Top 50 by Volume (Fast)</option>
-                <option value="top100">Top 100 by Volume</option>
-                <option value="top150">Top 150 by Volume</option>
-                <option value="top200">Top 200 by Volume (Deep Scan)</option>
+                <option value="top10">Top 10 by Volume (Very Fast)</option>
+                <option value="top25">Top 25 by Volume (Fast)</option>
+                <option value="top50">Top 50 by Volume</option>
+                <option value="top100">Top 100 by Volume (Deep Scan)</option>
               </select>
             </label>
 

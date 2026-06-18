@@ -110,8 +110,7 @@ export function getEntryGuidance(
 export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {  const [coins, setCoins] = useState<CoinOption[]>([]);
   const [selectedExchange, setSelectedExchange] = useState<Exchange>("bitget"); 
   const [selectedSymbol, setSelectedSymbol] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [timeframe, setTimeframe] = useState("1h");
+  const [timeframe, setTimeframe] = useState("3min");
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [loadingCoins, setLoadingCoins] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -126,6 +125,28 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
   } | null>(null);
   const [refreshElapsedMs, setRefreshElapsedMs] = useState(0);
   const [analysisUpdatedAt, setAnalysisUpdatedAt] = useState<Date | null>(null);
+  const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(15000);
+
+  // Parse search parameters on client-side mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlExchange = params.get("exchange") as Exchange;
+      const urlSymbol = params.get("symbol")?.toUpperCase();
+      const urlTimeframe = params.get("timeframe");
+
+      if (urlExchange && (urlExchange === "binance" || urlExchange === "bitget" || urlExchange === "mexc")) {
+        setSelectedExchange(urlExchange);
+      }
+      if (urlSymbol) {
+        setSelectedSymbol(urlSymbol);
+      }
+      if (urlTimeframe) {
+        setTimeframe(urlTimeframe);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -146,11 +167,10 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
         setCoinsUpdatedAt(payload?.updatedAt ?? "");
 
         if (coinList.length) {
-          setSelectedSymbol((current) =>
-            current && coinList.some((coin: CoinOption) => coin.symbol === current)
-              ? current
-              : coinList[0].symbol
-          );
+          setSelectedSymbol((current) => {
+            if (current) return current;
+            return coinList[0].symbol;
+          });
         }
       } catch (fetchError) {
         if ((fetchError as Error).name !== "AbortError") {
@@ -165,18 +185,13 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
     return () => controller.abort();
   }, [selectedExchange]);
 
+
   const selectedCoin = useMemo(
     () => coins.find((coin) => coin.symbol === selectedSymbol) ?? null,
     [coins, selectedSymbol]
   );
 
   const marketPrice = analysis?.lastPrice ?? selectedCoin?.lastPrice ?? null;
-
-  const estimatedNotional = useMemo(() => {
-    const qty = Number(quantity);
-    if (!marketPrice || !Number.isFinite(qty) || qty <= 0) return 0;
-    return qty * marketPrice;
-  }, [quantity, marketPrice]);
 
   const riskManagementValues = useMemo(() => {
     if (!analysis) return null;
@@ -325,13 +340,31 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
     await runAnalysis();
   }, [runAnalysis]);
 
+  // Auto-run analysis if symbol query parameter was present on load and coin is ready
   useEffect(() => {
-    if (!activeAnalysisRequest) return;
+    if (typeof window !== "undefined" && !loadingCoins && coins.length > 0 && selectedSymbol && !hasAutoAnalyzed) {
+      const params = new URLSearchParams(window.location.search);
+      const urlSymbol = params.get("symbol")?.toUpperCase();
+      if (urlSymbol && selectedSymbol === urlSymbol) {
+        setHasAutoAnalyzed(true);
+        void runAnalysis({
+          request: {
+            exchange: selectedExchange,
+            symbol: selectedSymbol,
+            timeframe,
+          }
+        });
+      }
+    }
+  }, [loadingCoins, coins, selectedSymbol, selectedExchange, timeframe, hasAutoAnalyzed, runAnalysis]);
+
+  useEffect(() => {
+    if (!activeAnalysisRequest || refreshIntervalMs <= 0) return;
 
     let elapsedMs = 0;
     const tickerId = window.setInterval(() => {
       elapsedMs += 200;
-      setRefreshElapsedMs(Math.min(elapsedMs, ANALYSIS_REFRESH_INTERVAL_MS));
+      setRefreshElapsedMs(Math.min(elapsedMs, refreshIntervalMs));
     }, 200);
 
     const intervalId = window.setInterval(() => {
@@ -341,13 +374,13 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
         isAutoRefresh: true,
         request: activeAnalysisRequest,
       });
-    }, ANALYSIS_REFRESH_INTERVAL_MS);
+    }, refreshIntervalMs);
 
     return () => {
       window.clearInterval(tickerId);
       window.clearInterval(intervalId);
     };
-  }, [activeAnalysisRequest, runAnalysis]);
+  }, [activeAnalysisRequest, runAnalysis, refreshIntervalMs]);
 
   useEffect(() => {
     if (!activeAnalysisRequest) setRefreshElapsedMs(0);
@@ -439,10 +472,20 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                 className={styles.input}
                 value={selectedSymbol}
                 onChange={(event) => {
-                  setSelectedSymbol(event.target.value);
+                  const nextSymbol = event.target.value;
+                  setSelectedSymbol(nextSymbol);
                   setAnalysis(null);
                   setAnalysisUpdatedAt(null);
                   setActiveAnalysisRequest(null);
+                  if (nextSymbol) {
+                    void runAnalysis({
+                      request: {
+                        exchange: selectedExchange,
+                        symbol: nextSymbol,
+                        timeframe: timeframe,
+                      },
+                    });
+                  }
                 }}
                 disabled={loadingCoins}
               >
@@ -465,6 +508,17 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                   setAnalysis(null);
                   setAnalysisUpdatedAt(null);
                   setActiveAnalysisRequest(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && selectedSymbol) {
+                    void runAnalysis({
+                      request: {
+                        exchange: selectedExchange,
+                        symbol: selectedSymbol,
+                        timeframe: timeframe,
+                      },
+                    });
+                  }
                 }}
                 placeholder="Type coin symbol, e.g. BTCUSDT"
                 autoCapitalize="characters"
@@ -497,25 +551,6 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
             </label>
 
             <label className={styles.label}>
-              Quantity to buy
-              <input
-                className={styles.input}
-                type="number"
-                min="0"
-                step="0.0001"
-                value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
-                placeholder="Enter quantity"
-              />
-            </label>
-
-            <div className={styles.helperRow}>
-              <span>
-                Estimated notional: {estimatedNotional > 0 ? formatNumber(estimatedNotional, 2) : "-"} USDT
-              </span>
-            </div>
-
-            <label className={styles.label}>
               Timeframe
               <select
                 className={styles.input}
@@ -543,6 +578,26 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                     {option.label}
                   </option>
                 ))}
+              </select>
+            </label>
+
+            <label className={styles.label}>
+              Auto Refresh Interval
+              <select
+                className={styles.input}
+                value={refreshIntervalMs}
+                onChange={(event) => {
+                  const val = Number(event.target.value);
+                  setRefreshIntervalMs(val);
+                  setRefreshElapsedMs(0);
+                }}
+              >
+                <option value={5000}>5 Seconds (Fast)</option>
+                <option value={10000}>10 Seconds</option>
+                <option value={15000}>15 Seconds (Default)</option>
+                <option value={30000}>30 Seconds</option>
+                <option value={60000}>60 Seconds</option>
+                <option value={0}>Manual Only</option>
               </select>
             </label>
 
@@ -578,82 +633,6 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                 </tbody>
               </table>
             </div>
-
-            {analysis && Number(quantity) > 0 && (
-              <div className={styles.riskManagement}>
-                <p className={styles.riskTitle}>Risk Management ({riskRatio} R:R)</p>
-                <table className={styles.riskTable}>
-                  <thead>
-                    <tr>
-                      <th>Level</th>
-                      <th>Price</th>
-                      <th>P/L (USDT)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Entry</td>
-                      <td>{formatNumber(analysis.lastPrice, 6)}</td>
-                      <td>-</td>
-                    </tr>
-                    <tr>
-                      <td>Stop Loss</td>
-                      <td>{formatNumber(riskManagementValues?.stopLoss ?? 0, 6)}</td>
-                      <td className={styles.loss}>
-                        -
-                        {formatNumber(
-                          Math.abs(analysis.lastPrice - (riskManagementValues?.stopLoss ?? 0)) * Number(quantity),
-                          2
-                        )}
-                      </td>
-                    </tr>
-                    {riskManagementValues?.tp1 && (
-                      <tr>
-                        <td>TP1</td>
-                        <td>{formatNumber(riskManagementValues.tp1, 6)}</td>
-                        <td className={styles.profit}>
-                          +
-                          {formatNumber(
-                            Math.abs((riskManagementValues.tp1 - analysis.lastPrice) * Number(quantity)),
-                            2
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                    {riskManagementValues?.tp2 && (
-                      <tr>
-                        <td>TP2</td>
-                        <td>{formatNumber(riskManagementValues.tp2, 6)}</td>
-                        <td className={styles.profit}>
-                          +
-                          {formatNumber(
-                            Math.abs((riskManagementValues.tp2 - analysis.lastPrice) * Number(quantity)),
-                            2
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                    {riskManagementValues?.tp3 && (
-                      <tr>
-                        <td>TP3</td>
-                        <td>{formatNumber(riskManagementValues.tp3, 6)}</td>
-                        <td className={styles.profit}>
-                          +
-                          {formatNumber(
-                            Math.abs((riskManagementValues.tp3 - analysis.lastPrice) * Number(quantity)),
-                            2
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                    <tr className={styles.riskRow}>
-                      <td>Risk:Reward</td>
-                      <td colSpan={2}>{riskRatio}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
 
             {analysis && entryGuidance && (
               <div className={styles.aiRecommendation} style={{ marginBottom: 16 }}>
@@ -759,7 +738,7 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                         style={{
                           width: `${Math.min(
                             100,
-                            Math.max(0, (refreshElapsedMs / ANALYSIS_REFRESH_INTERVAL_MS) * 100)
+                            refreshIntervalMs > 0 ? Math.max(0, (refreshElapsedMs / refreshIntervalMs) * 100) : 0
                           )}%`,
                         }}
                       />
@@ -810,53 +789,7 @@ export function AnalysisDashboard({ user, usageInfo }: AnalysisDashboardProps) {
                   </div>
                 </div>
 
-                {analysis && usageInfo?.isPremium && (
-                  <button
-                    type="button"
-                    className={styles.button}
-                    onClick={async () => {
-                      if (!selectedSymbol || !analysis) {
-                        setError("Please complete an analysis first");
-                        return;
-                      }
-                      try {
-                        setError(null);
-                        const response = await fetch("/api/watchlists/add", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            exchange: selectedExchange,
-                            symbol: selectedSymbol,
-                            entryPrice: marketPrice,
-                            targetPrice: riskManagementValues?.targetPrice,
-                            stopLoss: riskManagementValues?.stopLoss,
-                            tp1: riskManagementValues?.tp1,
-                            tp2: riskManagementValues?.tp2,
-                            tp3: riskManagementValues?.tp3,
-                            confidence: analysis.confidence,
-                            recommendation: analysis.recommendation,
-                            timeframe: timeframe,
-                            riskRatio: riskRatio,
-                          }),
-                        });
 
-                        if (!response.ok) {
-                          const errorPayload = await response.json().catch(() => ({}));
-                          throw new Error(errorPayload?.error ?? "Failed to add to watchlist");
-                        }
-
-                        const payload = await response.json();
-                        setError(null);
-                        alert(payload?.message ?? `${selectedSymbol} added to watchlist!`);
-                      } catch (err) {
-                        const errorMsg = err instanceof Error ? err.message : "Failed to add to watchlist";
-                        setError(errorMsg);
-                      }
-                    }}
-                  >
-                    Add to Watchlist
-                  </button>
-                )}
 
                 <div className={styles.supportBox}>
                   <div>

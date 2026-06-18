@@ -1,4 +1,4 @@
-import { detectMarketTrend } from "./trendDetector";
+import { detectMarketTrend, calculateRsi } from "./trendDetector";
 import { detectSupportResistance } from "./supportResistance";
 import { calculateEntryZone, getDistanceToEntryZone } from "./entryZoneCalculator";
 import { resolveTradeStatus, getDeduplicatedSignal } from "./signalStatusManager";
@@ -20,7 +20,7 @@ import {
 } from "./advancedSignalEnhancements";
 import { analyzeMultiTimeframe } from "./multiTimeframeAnalysis";
 
-const DEFAULT_ENTRY_ZONE_THRESHOLD = 0.0035;
+const DEFAULT_ENTRY_ZONE_THRESHOLD = 0.02;
 const DEFAULT_STOP_BUFFER = 0.002;
 const MIN_STOP_DISTANCE = 0.02;
 const MAX_STOP_DISTANCE = 0.05;
@@ -352,9 +352,8 @@ export const generateMarketStructureSignal = (
   // === NEW ENHANCEMENTS ===
 
   // 1. Entry Confirmation System
-  const rsiPrevious = candles.length >= 3 
-    ? candles[candles.length - 2].close - (candles[candles.length - 3]?.close || 0)
-    : 0;
+  const prevCloses = candles.slice(0, -1).map((c) => c.close);
+  const rsiPrevious = calculateRsi(prevCloses, 14);
   
   const entryConfirmation = checkEntryConfirmation(
     trendInfo.trend,
@@ -437,14 +436,23 @@ export const generateMarketStructureSignal = (
     notes.push(...signalFilters.reasons);
   }
 
+  const finalStatus = resolveTradeStatus({
+    action: finalAction,
+    trend: trendInfo.trend,
+    currentPrice,
+    entryZone,
+    support: levels.nearestSupport,
+    resistance: levels.nearestResistance,
+  });
+
   const baseSignal: GeneratedSignal = {
     symbol,
     exchange: options.exchange ?? "",
     trend: trendInfo.trend,
     action: finalAction,
     strategy_type: "SMC + S/R",
-    status,
-    setup: status,
+    status: finalStatus,
+    setup: finalStatus,
     entry_price: round(entryPrice),
     current_price: round(currentPrice),
     entry_zone: entryZone ? [round(entryZone[0]) ?? entryZone[0], round(entryZone[1]) ?? entryZone[1]] : null,

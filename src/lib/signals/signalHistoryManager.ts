@@ -20,6 +20,7 @@ export type SignalRecord = {
   created_at: string;
   entry_hit_at: string | null;
   closed_at: string | null;
+  current_price?: number | null;
 };
 
 export type SignalHistory = Record<string, SignalRecord[]>;
@@ -50,6 +51,7 @@ export function createSignalRecord(params: {
   stop_loss: number | null;
   take_profit: number | null;
   risk_reward_ratio: number;
+  current_price?: number | null;
 }): SignalRecord {
   return {
     id: generateId(),
@@ -68,6 +70,7 @@ export function createSignalRecord(params: {
     created_at: new Date().toISOString(),
     entry_hit_at: null,
     closed_at: null,
+    current_price: params.current_price ?? null,
   };
 }
 

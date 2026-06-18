@@ -478,10 +478,10 @@ export async function POST(request: Request) {
     ? (exchangeRaw as Exchange)
     : "binance";
 
-  const timeframeRaw = (body.timeframe || "1h").trim();
+  const timeframeRaw = (body.timeframe || "3min").trim();
   const timeframe = TIMEFRAMES.includes(timeframeRaw as (typeof TIMEFRAMES)[number])
     ? (timeframeRaw as (typeof TIMEFRAMES)[number])
-    : "1h";
+    : "3min";
 
   const exchangeTimeframe = TIMEFRAME_MAP[exchange][timeframe];
   if (!exchangeTimeframe) {
@@ -493,10 +493,10 @@ export async function POST(request: Request) {
 
   const selectedSymbol = normalizeSymbol(body.symbol?.trim() || "BTCUSDT");
 
-  const scanModeRaw = (body.scanMode || "top50").toLowerCase();
-  const scanMode = ["custom", "top50", "top100", "top150", "top200"].includes(scanModeRaw)
+  const scanModeRaw = (body.scanMode || "top10").toLowerCase();
+  const scanMode = ["custom", "top10", "top25", "top50", "top100"].includes(scanModeRaw)
     ? scanModeRaw
-    : "top50";
+    : "top10";
   const sessionFilterRaw = (body.session || "all").toLowerCase() as SessionName;
   const sessionFilter: SessionName = ["london", "newyork", "all", "asian", "american"].includes(sessionFilterRaw)
     ? sessionFilterRaw
@@ -506,13 +506,13 @@ export async function POST(request: Request) {
   let scannerSymbols: string[];
   if (scanMode !== "custom") {
     const limit =
-      scanMode === "top200"
-        ? 200
-        : scanMode === "top150"
-          ? 150
-          : scanMode === "top100"
-            ? 100
-            : 50;
+      scanMode === "top100"
+        ? 100
+        : scanMode === "top50"
+          ? 50
+          : scanMode === "top25"
+            ? 25
+            : 10;
     scannerSymbols = await fetchTopSymbolsByVolume(exchange, limit);
   } else {
     const symbolsFromQuery = body.symbols?.trim() || "";

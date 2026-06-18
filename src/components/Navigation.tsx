@@ -65,19 +65,29 @@ export function Navigation() {
   return (
     <nav
       style={{
-        borderBottom: "1px solid rgba(148, 163, 184, 0.2)",
-        padding: "12px 20px",
-        backgroundColor: "#0f1729",
+        display: "flex",
+        justifyContent: "center",
+        padding: "16px 20px",
+        backgroundColor: "transparent",
       }}
     >
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
+          flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          maxWidth: "100%",
-          margin: "0 auto",
+          justifyContent: "space-between",
+          gap: 20,
+          width: "100%",
+          maxWidth: "1200px",
+          padding: "10px 24px",
+          background: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderRadius: "16px",
+          border: "1px solid rgba(148, 163, 184, 0.15)",
+          boxShadow: "0 10px 30px -10px rgba(2, 6, 23, 0.5)",
+          flexWrap: "wrap",
         }}
       >
         <div
@@ -85,34 +95,40 @@ export function Navigation() {
             display: "flex",
             gap: 12,
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "flex-start",
             flexWrap: "wrap",
           }}
         >
-          <Link href="/dashboard" className={navLinkClassName("/dashboard")}>Dashboard</Link>
-          <Link href="/blog" className={navLinkClassName("/blog")}>Blog</Link>
-          <Link href="/signals" className={navLinkClassName("/signals")}>Signals</Link>
-          <Link href="/signals/history" className={navLinkClassName("/signals/history")}>Signals History</Link>
-          <Link href="/market-structure-signals" className={navLinkClassName("/market-structure-signals")}>Smart Signals</Link>
-          <Link href="/liquidation-calculator" className={navLinkClassName("/liquidation-calculator")}>Liquidation Calculator</Link>
-          {!loading && isAdmin && <Link href="/admin" className={navLinkClassName("/admin")}>Admin</Link>}
-
-          <Link href="/average-calculator" className={navLinkClassName("/average-calculator")}>Average Calculator</Link>
-          
-          {!loading && isPremium && (
-            <>
-              <Link href="/watchlists" className={navLinkClassName("/watchlists")}>Watchlists</Link>
-              <Link href="/alerts" className={navLinkClassName("/alerts")}>Alerts</Link>
-              <Link href="/profile" className={navLinkClassName("/profile")}>Profile</Link>
-            </>
+          <Link href="/dashboard" className={navLinkClassName("/dashboard")}>
+            Dashboard
+          </Link>
+          <Link href="/market-structure-signals" className={navLinkClassName("/market-structure-signals")}>
+            Smart Signal
+          </Link>
+          <Link href="/signals/history" className={navLinkClassName("/signals/history")}>
+            Signal History
+          </Link>
+          <Link href="/signals" className={navLinkClassName("/signals")}>
+            Signals
+          </Link>
+          <Link href="/trading-lists" className={navLinkClassName("/trading-lists")}>
+            Trading List
+          </Link>
+          {!loading && isAdmin && (
+            <Link href="/admin" className={navLinkClassName("/admin")}>
+              Admin
+            </Link>
           )}
-
+          {!loading && isPremium && (
+            <Link href="/profile" className={navLinkClassName("/profile")}>
+              Profile
+            </Link>
+          )}
           {!loading && !isPremium && (
             <Link href="/pricing" className={styles.navLink}>
               Upgrade
             </Link>
           )}
-
         </div>
 
         {loading ? null : isAuthenticated ? (

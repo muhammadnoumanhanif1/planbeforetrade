@@ -16,7 +16,7 @@ const calculateEma = (values: number[], period: number): number => {
   return ema;
 };
 
-const calculateRsi = (closes: number[], period = 14): number => {
+export const calculateRsi = (closes: number[], period = 14): number => {
   if (closes.length <= period) return 50;
   let gains = 0;
   let losses = 0;
