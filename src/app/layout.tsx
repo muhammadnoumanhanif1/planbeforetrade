@@ -11,25 +11,38 @@ import { getValidAdsenseClientId } from "@/lib/adsense";
 const validAdsenseClientId = getValidAdsenseClientId(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID);
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://planbeforetrade.tech"),
+  alternates: {
+    canonical: "/",
+  },
   title: {
-    default: "Plan Before Trade: Crypto Analysis for Smart Trades",
+    default: "Plan Before Trade | Crypto Trading Signals & Market Analysis",
     template: "%s | Plan Before Trade",
   },
   description:
-    "Plan Before Trade: Crypto Analysis for Smart Trades. AI-powered platform with usage-based free tier and premium features like watchlists, alerts, and saved analyses.",
+    "Get crypto trading signals, market analysis, risk management strategies, and AI-powered insights to help you plan before every trade.",
   keywords: [
+    "Plan Before Trade",
+    "Crypto Trading Signals",
+    "Trading Signals",
+    "Crypto Analysis",
+    "Bitcoin Signals",
+    "Altcoin Signals",
+    "Technical Analysis",
+    "Market Analysis",
+    "Risk Management",
+    "Trading Strategy",
+    "AI Crypto Trading",
+    "Crypto Market Opportunities",
     "crypto trading signals",
     "bitcoin analysis",
     "ethereum trading",
     "crypto market scanner",
-    "trading signals",
     "technical analysis",
     "market structure",
     "support resistance",
     "liquidity calculator",
     "crypto backtesting",
-    "risk management",
     "position sizing",
     "average calculator",
     "liquidation calculator",
@@ -37,7 +50,6 @@ export const metadata: Metadata = {
     "SMC trading",
     "crypto watchlist",
     "trading alerts",
-    "AI crypto analysis",
     "crypto trading platform",
     "forex signals",
     "futures trading",
@@ -46,7 +58,6 @@ export const metadata: Metadata = {
     "entry signals",
     "market opportunities",
     "crypto intelligence",
-    "trading strategy",
     "candlestick analysis",
     "RSI indicator",
     "EMA crossover",
@@ -70,19 +81,19 @@ export const metadata: Metadata = {
     "market analysis tools"
   ],
   openGraph: {
-    title: "Plan Before Trade: Crypto Analysis for Smart Trades",
+    title: "Plan Before Trade | Smart Crypto Trading Decisions",
     description:
-      "Analyze crypto markets with confidence scoring, support/resistance levels, and premium productivity tools.",
-    url: "/",
+      "Access crypto trading signals, AI-powered market analysis, technical indicators, and risk management tools.",
+    url: "https://planbeforetrade.tech",
     siteName: "Plan Before Trade",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Plan Before Trade: Crypto Analysis for Smart Trades",
+    title: "Plan Before Trade | Crypto Signals & Analysis",
     description:
-      "AI-powered crypto analysis with premium watchlists, saved analyses, and alerts.",
+      "Discover profitable crypto opportunities with advanced market analysis and trading signals.",
   },
   appleWebApp: {
     capable: true,
