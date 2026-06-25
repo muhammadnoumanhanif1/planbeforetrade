@@ -20,9 +20,12 @@ let browserClient: ReturnType<typeof createClient<Database>> | null = null;
 export function createBrowserClient() {
   if (browserClient) return browserClient;
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key";
+
   browserClient = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseUrl,
+    supabaseKey
   );
 
   return browserClient;

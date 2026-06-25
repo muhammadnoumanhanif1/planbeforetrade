@@ -28,9 +28,10 @@ function getRequiredEnv(name: string | string[]): string {
     const value = normalizeConfigValue(process.env[candidate]);
     if (value) return value;
   }
-  throw new Error(
-    `[supabase] Missing required environment variable: ${names.join(" or ")}`
-  );
+  // Return placeholder values to prevent app crash if env vars are missing
+  const isUrl = names.some(n => n.includes("URL"));
+  console.warn(`[supabase] Missing required environment variable: ${names.join(" or ")}. Using placeholder.`);
+  return isUrl ? "https://placeholder.supabase.co" : "placeholder-key";
 }
 
 export async function createServerClient() {

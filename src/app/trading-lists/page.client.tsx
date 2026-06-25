@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import styles from "../page.module.css";
 
@@ -132,6 +132,9 @@ export default function TradingListsPage() {
   const [loadingCoins, setLoadingCoins] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState("");
+  const [expandedCoin, setExpandedCoin] = useState<string | null>(null);
+  const [analysisData, setAnalysisData] = useState<Record<string, any>>({});
+  const [isAnalyzing, setIsAnalyzing] = useState<string | null>(null);
 
   const loadCoins = useCallback(async (selectedExchange: Exchange) => {
     setLoadingCoins(true);
@@ -157,6 +160,32 @@ export default function TradingListsPage() {
     loadCoins(exchange);
   }, [exchange, loadCoins]);
 
+  const handleAnalyzeCoin = async (symbol: string, pair: string) => {
+    if (expandedCoin === symbol) {
+      setExpandedCoin(null);
+      return;
+    }
+
+    setExpandedCoin(symbol);
+
+    if (analysisData[symbol]) {
+      return; // Already cached
+    }
+
+    setIsAnalyzing(symbol);
+    try {
+      const symbolToFetch = pair.toUpperCase().endsWith("USDT") ? pair.toUpperCase() : `${pair.toUpperCase()}USDT`;
+      const res = await fetch(`/api/analysis?exchange=${exchange}&symbol=${symbolToFetch}&timeframe=1h`);
+      if (!res.ok) throw new Error("Failed to load");
+      const data = await res.json();
+      setAnalysisData(prev => ({ ...prev, [symbol]: data }));
+    } catch (err) {
+      console.error(err);
+      setAnalysisData(prev => ({ ...prev, [symbol]: { error: true } }));
+    } finally {
+      setIsAnalyzing(null);
+    }
+  };
   const getActiveCoinsList = () => {
     switch (activeTab) {
       case "day":
@@ -368,49 +397,135 @@ export default function TradingListsPage() {
                   {activeCoins.map((coinSymbol) => {
                     const price = getCoinPrice(coinSymbol);
                     const pair = getCoinPair(coinSymbol);
+                    const isExpanded = expandedCoin === coinSymbol;
+                    const isCurrentlyAnalyzing = isAnalyzing === coinSymbol;
+                    const analysis = analysisData[coinSymbol];
 
                     return (
-                      <tr
-                        key={coinSymbol}
-                        style={{
-                          borderBottom: "1px solid rgba(148, 163, 184, 0.1)",
-                          transition: "background 0.2s ease",
-                        }}
-                        className="hover:bg-slate-800/20"
-                      >
-                        <td style={{ padding: "14px 8px", fontWeight: 700, color: "#fff", display: "flex", flexDirection: "column" }}>
-                          <span>{coinSymbol}</span>
-                          <span style={{ fontSize: 11, fontWeight: "normal", color: "#64748b" }}>{pair}</span>
-                        </td>
-                        <td style={{ padding: "14px 8px", textAlign: "right", fontWeight: 600, color: price ? "#22c55e" : "#94a3b8" }}>
-                          {price !== null ? (
-                            `$${price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 6,
-                            })} USDT`
-                          ) : (
-                            <span style={{ fontSize: 12, color: "#64748b" }}>Loading / Unavail.</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "14px 8px", textAlign: "center" }}>
-                          <Link
-                            href={`/dashboard?exchange=${exchange}&symbol=${pair}`}
-                            className={styles.upgradeButton}
-                            style={{
-                              display: "inline-block",
-                              fontSize: 12,
-                              padding: "6px 12px",
-                              background: "linear-gradient(135deg, #38bdf8, #6366f1)",
-                              color: "#0f172a",
-                              fontWeight: 700,
-                              borderRadius: 6,
-                              textDecoration: "none",
-                            }}
-                          >
-                            Analyze
-                          </Link>
-                        </td>
-                      </tr>
+                      <React.Fragment key={coinSymbol}>
+                        <tr
+                          style={{
+                            borderBottom: isExpanded ? "none" : "1px solid rgba(148, 163, 184, 0.1)",
+                            transition: "background 0.2s ease",
+                            background: isExpanded ? "rgba(15, 23, 42, 0.4)" : "transparent"
+                          }}
+                          className="hover:bg-slate-800/20"
+                        >
+                          <td style={{ padding: "14px 8px", fontWeight: 700, color: "#fff", display: "flex", flexDirection: "column" }}>
+                            <span>{coinSymbol}</span>
+                            <span style={{ fontSize: 11, fontWeight: "normal", color: "#64748b" }}>{pair}</span>
+                          </td>
+                          <td style={{ padding: "14px 8px", textAlign: "right", fontWeight: 600, color: price ? "#22c55e" : "#94a3b8" }}>
+                            {price !== null ? (
+                              `$${price.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 6,
+                              })} USDT`
+                            ) : (
+                              <span style={{ fontSize: 12, color: "#64748b" }}>Loading / Unavail.</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "14px 8px", textAlign: "center" }}>
+                            <button
+                              onClick={() => handleAnalyzeCoin(coinSymbol, pair)}
+                              className={styles.upgradeButton}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                fontSize: 12,
+                                padding: "6px 12px",
+                                background: isExpanded ? "transparent" : "linear-gradient(135deg, #38bdf8, #6366f1)",
+                                border: isExpanded ? "1px solid rgba(56, 189, 248, 0.4)" : "none",
+                                color: isExpanded ? "#38bdf8" : "#0f172a",
+                                fontWeight: 700,
+                                borderRadius: 6,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {isCurrentlyAnalyzing ? "Analyzing..." : isExpanded ? "Close" : "Deep Analysis"}
+                              <span style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+                            </button>
+                          </td>
+                        </tr>
+
+                        {isExpanded && (
+                          <tr style={{ borderBottom: "1px solid rgba(148, 163, 184, 0.1)", background: "rgba(15, 23, 42, 0.4)" }}>
+                            <td colSpan={3} style={{ padding: "0 16px 20px 16px" }}>
+                              {isCurrentlyAnalyzing ? (
+                                <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
+                                  Running deep market analysis for {coinSymbol}...
+                                </div>
+                              ) : analysis?.error ? (
+                                <div style={{ padding: "20px", textAlign: "center", color: "#ef4444", fontSize: "14px" }}>
+                                  Analysis failed or rate limit reached. Please try again later.
+                                </div>
+                              ) : analysis ? (
+                                <div style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                                  gap: "16px",
+                                  padding: "16px",
+                                  background: "rgba(2, 6, 23, 0.6)",
+                                  borderRadius: "12px",
+                                  border: "1px solid rgba(56, 189, 248, 0.15)"
+                                }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    <span style={{ fontSize: "11px", textTransform: "uppercase", color: "#94a3b8" }}>Signal Direction</span>
+                                    <span style={{ fontSize: "18px", fontWeight: "bold", color: analysis.recommendation === "LONG" ? "#4ade80" : "#f87171" }}>
+                                      {analysis.recommendation}
+                                    </span>
+                                    <span style={{ fontSize: "12px", color: "#64748b" }}>Confidence: {analysis.confidence}%</span>
+                                  </div>
+
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    <span style={{ fontSize: "11px", textTransform: "uppercase", color: "#94a3b8" }}>Entry Zone</span>
+                                    <span style={{ fontSize: "14px", color: "#f8fafc" }}>
+                                      S: ${analysis.support?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} <br/>
+                                      R: ${analysis.resistance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    <span style={{ fontSize: "11px", textTransform: "uppercase", color: "#94a3b8" }}>Take Profits (TP)</span>
+                                    <div style={{ fontSize: "14px", color: "#4ade80", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                      {analysis.takeProfits?.map((tp: number, i: number) => (
+                                        <div key={i}>TP{i+1}: ${tp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    <span style={{ fontSize: "11px", textTransform: "uppercase", color: "#94a3b8" }}>Stop Loss (SL)</span>
+                                    <span style={{ fontSize: "16px", color: "#f87171", fontWeight: "bold" }}>
+                                      ${analysis.stopLosses?.[0]?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                                    <Link
+                                      href={`/dashboard?exchange=${exchange}&symbol=${pair}`}
+                                      style={{
+                                        padding: "8px 16px",
+                                        background: "rgba(56, 189, 248, 0.1)",
+                                        color: "#38bdf8",
+                                        borderRadius: "6px",
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        textDecoration: "none",
+                                        border: "1px solid rgba(56, 189, 248, 0.2)",
+                                        whiteSpace: "nowrap"
+                                      }}
+                                    >
+                                      View Full Chart →
+                                    </Link>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

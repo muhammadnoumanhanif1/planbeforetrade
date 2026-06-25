@@ -114,6 +114,9 @@ export function Navigation() {
           <Link href="/trading-lists" className={navLinkClassName("/trading-lists")}>
             Trading List
           </Link>
+          <Link href="/planning" className={navLinkClassName("/planning")}>
+            Planning
+          </Link>
           {!loading && isAdmin && (
             <Link href="/admin" className={navLinkClassName("/admin")}>
               Admin

@@ -1,31 +1,59 @@
 // src/lib/livePrice.ts
 
 import { LRUCache } from 'lru-cache';
+import { EXCHANGES, ExchangeId } from './exchanges';
 
 const priceCache = new LRUCache<string, number>({
   max: 100,
   ttl: 1000 * 15, // 15 seconds
 });
 
-// This is a mock function. In a real application, you would use a WebSocket
-// or a fast price API (e.g., from Binance or a data provider).
-async function fetchLivePriceFromAPI(symbol: string): Promise<number> {
-  console.log(`[API] Fetching live price for ${symbol}`);
-  // Simulate API call latency
-  await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
-  // Simulate price fluctuation around a base
-  const basePrice = 65000;
-  const price = basePrice + (Math.random() - 0.5) * 1000;
-  return parseFloat(price.toFixed(2));
+async function fetchLivePriceFromAPI(symbol: string, exchangeId: ExchangeId): Promise<number> {
+  const exchange = EXCHANGES[exchangeId] || EXCHANGES.binance;
+  const normalizedSymbol = exchange.normalizeSymbol(symbol);
+  
+  try {
+    if (exchangeId === 'binance') {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${normalizedSymbol}`);
+      if (!res.ok) throw new Error("Binance API error");
+      const data = await res.json();
+      return parseFloat(data.price);
+    } 
+    else if (exchangeId === 'mexc') {
+      const res = await fetch(`https://api.mexc.com/api/v3/ticker/price?symbol=${normalizedSymbol}`);
+      if (!res.ok) throw new Error("MEXC API error");
+      const data = await res.json();
+      return parseFloat(data.price);
+    }
+    else if (exchangeId === 'bitget') {
+      // Bitget spot symbols usually end with _SPBL
+      const formattedSymbol = normalizedSymbol.endsWith('_SPBL') ? normalizedSymbol : `${normalizedSymbol}_SPBL`;
+      const res = await fetch(`https://api.bitget.com/api/v2/spot/market/tickers?symbol=${formattedSymbol}`);
+      if (!res.ok) throw new Error("Bitget API error");
+      const data = await res.json();
+      if (data && data.data && data.data.length > 0) {
+        return parseFloat(data.data[0].lastPr);
+      }
+      throw new Error("Invalid Bitget response");
+    }
+  } catch (error) {
+    console.error(`Failed to fetch live price for ${symbol} on ${exchangeId}:`, error);
+    throw error;
+  }
+  
+  return 0;
 }
 
-export async function getLivePrice(symbol: string): Promise<number> {
-  const cachedPrice = priceCache.get(symbol);
+export async function getLivePrice(symbol: string, exchange: ExchangeId = 'binance'): Promise<number> {
+  const cacheKey = `${exchange}:${symbol}`;
+  const cachedPrice = priceCache.get(cacheKey);
   if (cachedPrice) {
     return cachedPrice;
   }
 
-  const livePrice = await fetchLivePriceFromAPI(symbol);
-  priceCache.set(symbol, livePrice);
+  const livePrice = await fetchLivePriceFromAPI(symbol, exchange);
+  if (livePrice > 0) {
+    priceCache.set(cacheKey, livePrice);
+  }
   return livePrice;
 }
