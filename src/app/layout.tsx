@@ -5,10 +5,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { PWAProvider } from "@/components/PWAProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { Header } from "@/components/Header";
-import { getValidAdsenseClientId } from "@/lib/adsense";
-
-const validAdsenseClientId = getValidAdsenseClientId(process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID);
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://planbeforetrade.tech"),
@@ -104,7 +100,6 @@ export const metadata: Metadata = {
     telephone: false,
   },
   manifest: "/manifest.json",
-  ...(validAdsenseClientId ? { other: { "google-adsense-account": validAdsenseClientId } } : {}),
 };
 
 export const viewport: Viewport = {
@@ -125,7 +120,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         
-        <Header />
         <AnalyticsTracker />
         {children}
         <PWAProvider />

@@ -14,7 +14,6 @@ for file in "${files[@]}"; do
   #     <p className={styles.kicker}>Plan Before Trade</p>
   #     <h1>CRYPTO COINS ANALYSIS PLATFORM</h1>
   #   </div>
-  <meta name="google-adsense-account" content="ca-pub-1436344877676413">
   # 
   # With:
   # <header className={styles.header}>
